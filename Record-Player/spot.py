@@ -101,8 +101,8 @@ def get_current_playing_info():
 
 
 def spotify_authenticate(client_id, client_secret, redirect_uri, username):
-    # OAuth with the required scopes for playback control, reading currently playing track, and playback state
-    scope = "user-read-currently-playing user-modify-playback-state user-read-playback-state"
+    # OAuth with the required scopes for playback control and reading currently playing track
+    scope = "user-read-currently-playing user-modify-playback-state"
     auth_manager = SpotifyOAuth(client_id, client_secret, redirect_uri, scope=scope, username=username)
     return spotipy.Spotify(auth_manager=auth_manager)
 
@@ -144,38 +144,7 @@ def skip_to_previous():
     except spotipy.SpotifyException as e:
         return f"Error in skipping to previous track: {str(e)}"
 
+# print(get_current_playing_info(username, clientID, clientSecret, redirect_uri))
 
-def get_playback_state():
-    """
-    Get current playback state including position and duration.
-    Returns dict with progress_ms, duration_ms, is_playing, or None if nothing playing.
-    """
-    global spotify
-    try:
-        playback = spotify.current_playback()
-        if playback is None or playback.get('item') is None:
-            return None
-        return {
-            "progress_ms": playback.get("progress_ms", 0),
-            "duration_ms": playback["item"].get("duration_ms", 0),
-            "is_playing": playback.get("is_playing", False),
-        }
-    except spotipy.SpotifyException as e:
-        print(f"Error getting playback state: {str(e)}")
-        return None
-
-
-def seek_position(position_ms):
-    """
-    Seek to a specific position in the current track.
-    Args:
-        position_ms: Position in milliseconds to seek to
-    """
-    global spotify
-    try:
-        # Clamp position to valid range
-        position_ms = max(0, int(position_ms))
-        spotify.seek_track(position_ms)
-        return f"Seeked to {position_ms}ms"
-    except spotipy.SpotifyException as e:
-        return f"Error seeking: {str(e)}"
+# spotify = spotify_authenticate(clientID, clientSecret, redirect_uri, username)
+# print(skip_to_previous(spotify))   # Stop music
