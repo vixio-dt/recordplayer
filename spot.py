@@ -7,10 +7,10 @@ from spotipy.oauth2 import SpotifyOAuth
 import tkinter as tk
 from tkinter import simpledialog
 
-# Load environment variables from a .env file if present
-def load_env_file(env_path='.env'):
+# Load environment variables from env file if present
+def load_env_file(env_path):
     """
-    Load environment variables from a .env file if present.
+    Load environment variables from an env file if present.
     Searches first in the current working directory, then beside this script.
     """
     cwd_path = Path(env_path)
@@ -20,7 +20,7 @@ def load_env_file(env_path='.env'):
     elif script_path.is_file():
         env_file = script_path
     else:
-        return
+        return False
     # Read and parse lines
     content = env_file.read_text()
     for line in content.splitlines():
@@ -34,8 +34,12 @@ def load_env_file(env_path='.env'):
         # Only set if not already in environment
         if key and val and key not in os.environ:
             os.environ[key] = val
+    return True
 
-load_env_file()
+# Try loading from multiple possible env file names
+for env_name in ['env.local', '.env', '.env.local']:
+    if load_env_file(env_name):
+        break
 
 # Read credentials from environment variables
 clientID = os.getenv("SPOTIFY_CLIENT_ID")

@@ -23,39 +23,30 @@ BASE_DIR = Path(__file__).resolve().parent
 # -------------------------------
 # Vinyl Drawing Functions
 # -------------------------------
-def create_vinyl_surface(size=1080, album_img=None, album_size=300):
+def create_vinyl_surface(base_vinyl_img, size=1080, album_img=None, album_size=300):
     """
-    Create a vinyl record surface with optional album art in the center.
+    Create a vinyl record surface using a base image with optional album art overlay.
     
     Args:
-        size: Size of the vinyl in pixels
-        album_img: Pygame surface of album art (or None for black center)
+        base_vinyl_img: Base vinyl record image (Pygame surface)
+        size: Size to scale the vinyl to in pixels
+        album_img: Pygame surface of album art (or None for blank center)
         album_size: Size to scale album art to
     
     Returns:
-        Pygame surface with vinyl record
+        Pygame surface with vinyl record and album art overlay
     """
-    # Create surface with alpha channel
-    vinyl = pygame.Surface((size, size), pygame.SRCALPHA)
+    # Scale the base vinyl image to desired size
+    vinyl = pygame.transform.smoothscale(base_vinyl_img, (size, size))
+    vinyl = vinyl.convert_alpha()
     
     center = size // 2
     
-    # Draw the main black vinyl disc
-    pygame.draw.circle(vinyl, (20, 20, 20), (center, center), size // 2)
-    
-    # Draw subtle groove rings (vinyl texture)
-    groove_color = (35, 35, 35)
-    for r in range(album_size // 2 + 30, size // 2 - 10, 8):
-        pygame.draw.circle(vinyl, groove_color, (center, center), r, 1)
-    
-    # Draw the center label area (slightly lighter)
-    label_radius = album_size // 2 + 20
-    pygame.draw.circle(vinyl, (40, 40, 40), (center, center), label_radius)
-    
-    # Draw album art in center or black circle if none
+    # Overlay album art in center if provided
     if album_img:
         # Scale album art to desired size
-        scaled_album = pygame.transform.scale(album_img, (album_size, album_size))
+        scaled_album = pygame.transform.smoothscale(album_img, (album_size, album_size))
+        
         # Create circular mask for album art
         album_pos = (center - album_size // 2, center - album_size // 2)
         
@@ -70,13 +61,6 @@ def create_vinyl_surface(size=1080, album_img=None, album_size=300):
         masked_album.blit(circle_surface, (0, 0), special_flags=pygame.BLEND_RGBA_MIN)
         
         vinyl.blit(masked_album, album_pos)
-    else:
-        # Draw black center when nothing is playing
-        pygame.draw.circle(vinyl, (0, 0, 0), (center, center), album_size // 2)
-    
-    # Draw spindle hole in center
-    pygame.draw.circle(vinyl, (60, 60, 60), (center, center), 8)
-    pygame.draw.circle(vinyl, (30, 30, 30), (center, center), 5)
     
     return vinyl
 
@@ -118,11 +102,15 @@ def run(windowed=False):
     # Load UI assets
     # -------------------------------
     icons_dir = BASE_DIR / 'spotify'
+    records_dir = BASE_DIR / 'records'
     play_btn  = pygame.image.load(str(icons_dir / 'play.png'))
     pause_btn = pygame.image.load(str(icons_dir / 'pause.png'))
     skip_btn  = pygame.image.load(str(icons_dir / 'skip.png'))
     prev_btn  = pygame.image.load(str(icons_dir / 'previous.png'))
     banner    = pygame.image.load(str(icons_dir / 'banner.png'))
+    
+    # Load vinyl record base image
+    base_vinyl_img = pygame.image.load(str(records_dir / 'Vinyl.png'))
 
     font = pygame.font.Font(None, 40)
     small_font = pygame.font.Font(None, 28)
@@ -133,6 +121,10 @@ def run(windowed=False):
     sfx_dir = BASE_DIR / 'sfx'
     sfx_paths = [p for p in sfx_dir.iterdir() if p.is_file() and p.suffix.lower() == '.wav']
     scratch_sounds = [pygame.mixer.Sound(str(path)) for path in sfx_paths]
+    # Set scratch sound volume (0.0 to 1.0)
+    SCRATCH_VOLUME = 0.3
+    for sound in scratch_sounds:
+        sound.set_volume(SCRATCH_VOLUME)
 
     # -------------------------------
     # Constants
@@ -155,7 +147,7 @@ def run(windowed=False):
     last_mouse_pos = None
     details = None
     album_img_raw = None  # Raw album image from Spotify
-    vinyl_surface = create_vinyl_surface(VINYL_SIZE, None, ALBUM_ART_SIZE)
+    vinyl_surface = create_vinyl_surface(base_vinyl_img, VINYL_SIZE, None, ALBUM_ART_SIZE)
     
     # Controls visibility state
     controls_visible = False
@@ -193,14 +185,14 @@ def run(windowed=False):
                     img = pygame.image.load(BytesIO(r.content))
                     album_img_raw = img
                     # Recreate vinyl with new album art
-                    vinyl_surface = create_vinyl_surface(VINYL_SIZE, album_img_raw, ALBUM_ART_SIZE)
+                    vinyl_surface = create_vinyl_surface(base_vinyl_img, VINYL_SIZE, album_img_raw, ALBUM_ART_SIZE)
                 except Exception as e:
                     print(f"Error loading album cover: {e}", file=sys.stderr)
         else:
             # Nothing playing
             details = None
             album_img_raw = None
-            vinyl_surface = create_vinyl_surface(VINYL_SIZE, None, ALBUM_ART_SIZE)
+            vinyl_surface = create_vinyl_surface(base_vinyl_img, VINYL_SIZE, None, ALBUM_ART_SIZE)
             is_playing = False
 
     def update_playback_state():
@@ -401,8 +393,8 @@ def run(windowed=False):
         vinyl_rect = rotated_vinyl.get_rect(center=CENTER)
         screen.blit(rotated_vinyl, vinyl_rect)
         
-        # Auto-rotate when playing (and not dragging)
-        if is_playing and not dragging:
+        # Auto-rotate when not dragging (always spin)
+        if not dragging:
             angle = (angle + angle_speed) % 360
 
         # Draw controls overlay (if visible)
