@@ -105,6 +105,11 @@ cat > ~/.config/go-librespot/config.yml << EOF
 device_name: "${DEVICE_NAME}"
 bitrate: 160
 backend: "alsa"
+
+# Enable API server for track info (used by visualization)
+server:
+  enabled: true
+  port: 3678
 EOF
 
 # Create systemd user service

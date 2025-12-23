@@ -7,7 +7,7 @@ import threading
 import random
 from io import BytesIO
 from spot import (
-    get_current_playing_info, 
+    get_current_playing_info as spotify_get_current_playing_info, 
     start_music, 
     stop_music, 
     skip_to_next, 
@@ -15,6 +15,7 @@ from spot import (
     get_playback_state,
     seek_position
 )
+import librespot_api
 import argparse
 from pathlib import Path
 
@@ -132,7 +133,7 @@ def run(windowed=False):
     SCREEN_SIZE = 1080
     CENTER = (SCREEN_SIZE // 2, SCREEN_SIZE // 2)
     VINYL_SIZE = int(SCREEN_SIZE * 1.1)  # Slightly larger for rotation overflow
-    ALBUM_ART_SIZE = 300  # Size of album art in vinyl center
+    ALBUM_ART_SIZE = 240  # Size of album art in vinyl center (80% of original 300)
     CENTER_TAP_RADIUS = ALBUM_ART_SIZE // 2  # Tap area to show controls
     CONTROLS_AUTO_HIDE_SECONDS = 5
     SEEK_SENSITIVITY = 100  # ms per degree of rotation (360° = 36 seconds)
@@ -166,6 +167,26 @@ def run(windowed=False):
     # -------------------------------
     # Helper functions
     # -------------------------------
+    def get_current_playing_info():
+        """
+        Get current playing info from go-librespot API first, fallback to Spotify API.
+        This allows album art to work for any user, not just the account owner.
+        """
+        # Try go-librespot API first (works for any connected user)
+        try:
+            librespot_info = librespot_api.get_current_track_info()
+            if librespot_info and librespot_info.get("album_cover"):
+                return librespot_info
+        except Exception as e:
+            print(f"go-librespot API error (falling back to Spotify): {e}", file=sys.stderr)
+        
+        # Fallback to Spotify API (only works for account owner)
+        try:
+            return spotify_get_current_playing_info()
+        except Exception as e:
+            print(f"Spotify API error: {e}", file=sys.stderr)
+            return None
+    
     def update_details():
         nonlocal details, album_img_raw, vinyl_surface, is_playing
         try:
@@ -179,7 +200,7 @@ def run(windowed=False):
             track_changed = details is None or details.get("title") != new_details.get("title")
             details = new_details
             
-            if track_changed:
+            if track_changed and details.get("album_cover"):
                 try:
                     r = requests.get(details["album_cover"])
                     img = pygame.image.load(BytesIO(r.content))
@@ -355,8 +376,9 @@ def run(windowed=False):
                 angle -= rotation_delta
                 angle %= 360
                 
-                # Accumulate rotation for seeking (keep original direction for seek logic)
-                accumulated_rotation -= rotation_delta
+                # Accumulate rotation for seeking
+                # Positive (clockwise) = seek forward, Negative (counter-clockwise) = seek backward
+                accumulated_rotation += rotation_delta
                 
                 # Play scratch sound periodically while dragging
                 current_time = time.time()
