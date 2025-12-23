@@ -296,7 +296,9 @@ def run(windowed=False):
                     # Previous track
                     if prev_x <= mx <= prev_x + prev_w and prev_y <= my <= prev_y + prev_h:
                         try:
-                            skip_to_previous()
+                            # Try go-librespot API first, fallback to Spotify API
+                            if not librespot_api.skip_previous():
+                                skip_to_previous()
                             threading.Thread(target=update_details, daemon=True).start()
                         except Exception as e:
                             print(f"Error skipping to previous: {e}", file=sys.stderr)
@@ -306,13 +308,17 @@ def run(windowed=False):
                     elif pause_x <= mx <= pause_x + pause_w and pause_y <= my <= pause_y + pause_h:
                         if is_playing:
                             try:
-                                stop_music()
+                                # Try go-librespot API first, fallback to Spotify API
+                                if not librespot_api.pause():
+                                    stop_music()
                                 is_playing = False
                             except Exception as e:
                                 print(f"Error stopping music: {e}", file=sys.stderr)
                         else:
                             try:
-                                start_music()
+                                # Try go-librespot API first, fallback to Spotify API
+                                if not librespot_api.play():
+                                    start_music()
                                 is_playing = True
                             except Exception as e:
                                 print(f"Error starting music: {e}", file=sys.stderr)
@@ -321,7 +327,9 @@ def run(windowed=False):
                     # Next track
                     elif skip_x <= mx <= skip_x + skip_w and skip_y <= my <= skip_y + skip_h:
                         try:
-                            skip_to_next()
+                            # Try go-librespot API first, fallback to Spotify API
+                            if not librespot_api.skip_next():
+                                skip_to_next()
                             threading.Thread(target=update_details, daemon=True).start()
                         except Exception as e:
                             print(f"Error skipping to next: {e}", file=sys.stderr)
@@ -357,7 +365,10 @@ def run(windowed=False):
                     new_position = current_position_ms + seek_delta_ms
                     new_position = max(0, min(new_position, track_duration_ms))
                     try:
-                        seek_position(new_position)
+                        # Try go-librespot API first (works for any user)
+                        if not librespot_api.seek(new_position):
+                            # Fallback to Spotify API (only works for account owner)
+                            seek_position(new_position)
                         current_position_ms = new_position
                     except Exception as e:
                         print(f"Error seeking: {e}", file=sys.stderr)
