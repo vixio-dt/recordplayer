@@ -14,5 +14,6 @@ echo "Starting RecordPlayer..."
 echo "Press ESC to exit."
 echo ""
 
-python3 main.py "$@"
+# Use PipeWire for audio to allow mixing with Spotify
+SDL_AUDIODRIVER=pipewire python3 main.py "$@"
 

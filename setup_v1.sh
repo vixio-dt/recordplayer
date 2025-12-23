@@ -53,7 +53,9 @@ sudo apt install -y \
     bluez \
     bluez-tools \
     python3-pip \
-    python3-pygame
+    python3-pygame \
+    pipewire-alsa \
+    avahi-utils
 
 # Try to install bluez-alsa (package name varies by distro)
 sudo apt install -y bluez-alsa-utils 2>/dev/null || \
@@ -110,9 +112,12 @@ mkdir -p ~/.config/systemd/user
 cat > ~/.config/systemd/user/go-librespot.service << EOF
 [Unit]
 Description=Go Librespot (Spotify Connect)
-After=network-online.target sound.target
+After=network-online.target sound.target pipewire.service wireplumber.service
+Wants=pipewire.service wireplumber.service
 
 [Service]
+Environment="XDG_RUNTIME_DIR=/run/user/1000"
+ExecStartPre=/bin/sleep 3
 ExecStart=/usr/local/bin/go-librespot
 Restart=always
 RestartSec=5
