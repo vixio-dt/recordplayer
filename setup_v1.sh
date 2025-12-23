@@ -52,9 +52,13 @@ sudo apt install -y \
     shairport-sync \
     bluez \
     bluez-tools \
-    bluealsa \
     python3-pip \
     python3-pygame
+
+# Try to install bluez-alsa (package name varies by distro)
+sudo apt install -y bluez-alsa-utils 2>/dev/null || \
+sudo apt install -y bluealsa 2>/dev/null || \
+echo "Note: Bluetooth audio package not found, Bluetooth may have limited functionality"
 
 # Install Python dependencies
 pip3 install --user spotipy requests || true
@@ -187,9 +191,11 @@ Restart=always
 WantedBy=multi-user.target
 EOF
 
-# Enable BlueALSA for Bluetooth audio
-sudo systemctl enable bluealsa 2>/dev/null || true
-sudo systemctl restart bluealsa 2>/dev/null || true
+# Enable BlueALSA for Bluetooth audio (if available)
+sudo systemctl enable bluealsa 2>/dev/null || \
+sudo systemctl enable bluez-alsa 2>/dev/null || true
+sudo systemctl restart bluealsa 2>/dev/null || \
+sudo systemctl restart bluez-alsa 2>/dev/null || true
 
 # Enable Bluetooth agent
 sudo systemctl daemon-reload
