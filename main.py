@@ -351,12 +351,12 @@ def run(windowed=False):
                 # Calculate rotation based on circular motion around center
                 rotation_delta = calculate_rotation_delta(event.pos, last_mouse_pos, CENTER)
                 
-                # Update visual angle
-                angle += rotation_delta
+                # Update visual angle (negate for correct direction - pygame rotates counter-clockwise)
+                angle -= rotation_delta
                 angle %= 360
                 
-                # Accumulate rotation for seeking
-                accumulated_rotation += rotation_delta
+                # Accumulate rotation for seeking (keep original direction for seek logic)
+                accumulated_rotation -= rotation_delta
                 
                 # Play scratch sound periodically while dragging
                 current_time = time.time()
