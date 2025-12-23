@@ -61,7 +61,9 @@ sudo apt install -y bluealsa 2>/dev/null || \
 echo "Note: Bluetooth audio package not found, Bluetooth may have limited functionality"
 
 # Install Python dependencies
-pip3 install --user spotipy requests || true
+sudo apt install -y python3-requests 2>/dev/null || true
+pip3 install --user --break-system-packages spotipy requests 2>/dev/null || \
+pip3 install --user spotipy requests 2>/dev/null || true
 
 echo "Dependencies installed."
 echo ""
