@@ -4,6 +4,11 @@
 
 This project provides a fun and interactive vinyl record player interface for Spotify. Spin the record to seek through songs, scratch for sound effects, and control playback with a tap-to-reveal control panel.
 
+The Raspberry Pi also acts as a **universal audio receiver** supporting:
+- **Spotify Connect** - Select "RecordPlayer" in any Spotify app
+- **AirPlay** - Stream from iPhone/iPad/Mac
+- **Bluetooth** - Pair any Bluetooth device
+
 ## Physical Build Manual
 
 For detailed instructions on assembling the physical record player enclosure, wiring diagrams, and parts list, please refer to:
@@ -13,42 +18,49 @@ For detailed instructions on assembling the physical record player enclosure, wi
 
 ## Features
 
-- **Dynamic vinyl with album art**: The vinyl record displays the current album cover in its center
-- **Scratch-seeking**: Drag the vinyl to seek through the song while playing scratch sound effects
+- **Dynamic vinyl with album art**: The vinyl record displays the current album cover in its center (Spotify only)
+- **Scratch-seeking**: Drag the vinyl to seek through the song while playing scratch sound effects (Spotify only)
 - **Tap-to-show controls**: Tap the album art in the center to reveal/hide playback controls
 - **Auto-hiding controls**: Controls automatically hide after 5 seconds
 - **Real-time sync**: Displays currently playing track, artist, and progress bar
 - **Playback controls**: Play/pause, skip forward, skip back
+- **Multi-source audio**: Receive audio from Spotify, AirPlay, or Bluetooth
 
 ## Requirements
 
+- Raspberry Pi (tested on Pi 4/5, 64-bit OS)
 - Python 3.7+
-- pip
-- Spotify Premium account
+- Spotify Premium account (for Spotify Connect features)
 - A registered Spotify application (Client ID and Client Secret)
 
-Python dependencies:
+## Quick Setup (Raspberry Pi)
+
+### 1. Clone the repository
 
 ```bash
-pip install pygame requests spotipy
+cd ~
+git clone https://github.com/vixio-dt/recordplayer.git Record-Player
+cd Record-Player
 ```
 
-## Configuration
+### 2. Run the V1 setup script
 
-This application uses environment variables for Spotify authentication and settings.
-It automatically loads values from a `.env` file in the project root (if present).
-Required variables:
+This installs and configures all audio services (Spotify Connect, AirPlay, Bluetooth):
 
-- `SPOTIFY_CLIENT_ID`: Your Spotify application Client ID.
-- `SPOTIFY_CLIENT_SECRET`: Your Spotify application Client Secret.
-- `SPOTIFY_USERNAME`: Your Spotify username.
+```bash
+chmod +x setup_v1.sh
+./setup_v1.sh
+```
 
-Optional variables (with defaults):
+### 3. Configure Spotify API credentials
 
-- `SPOTIFY_REDIRECT_URI` (default: `http://localhost:8888/callback`)
-- `SPOTIFY_SCOPE` (default: `user-read-currently-playing`)
+Create the `env.local` file:
 
-To configure, create a `.env` file in the project root with:
+```bash
+nano env.local
+```
+
+Add your credentials:
 
 ```bash
 SPOTIFY_CLIENT_ID=your_client_id
@@ -57,97 +69,114 @@ SPOTIFY_USERNAME=your_spotify_username
 SPOTIFY_REDIRECT_URI=http://localhost:8888/callback
 ```
 
-On first run, if any required variables are missing, the app will prompt you to enter them,
-and save them to `.env` for future use.
+To get these credentials:
+1. Go to https://developer.spotify.com/dashboard
+2. Create a new app
+3. Add `http://localhost:8888/callback` as a Redirect URI
+4. Copy the Client ID and Client Secret
 
-## Usage
+### 4. Start the vinyl visualization
 
-Run the application from the command line:
+```bash
+./start_recordplayer.sh
+```
 
-- Fullscreen mode (default):
+Or with windowed mode for testing:
 
-  ```bash
-  python main.py
-  ```
-
-- Windowed mode:
-
-  ```bash
-  python main.py --windowed
-  ```
+```bash
+python3 main.py --windowed
+```
 
 Press **ESC** to exit.
+
+## Connecting to RecordPlayer
+
+After setup, your Raspberry Pi will appear as **"RecordPlayer"** on all these services:
+
+### Spotify Connect
+1. Open Spotify on your phone/tablet/computer
+2. Play any song
+3. Tap the speaker/device icon
+4. Select "RecordPlayer"
+
+### AirPlay (iPhone/iPad/Mac)
+1. Open Control Center
+2. Tap the AirPlay icon (or long-press the music controls)
+3. Select "RecordPlayer"
+
+### Bluetooth
+1. Open your phone's Bluetooth settings
+2. Scan for devices
+3. Pair with "RecordPlayer"
 
 ## Controls
 
 - **Tap the center (album art)**: Show/hide playback controls
-- **Drag anywhere on the vinyl**: Seek through the song (with scratch sound effects)
+- **Drag anywhere on the vinyl**: Seek through the song (with scratch sound effects) - Spotify only
 - **Playback buttons** (when visible):
   - ◄ Previous track
   - ▶/⏸ Play/Pause
   - ► Next track
 
-## Raspberry Pi Setup (spotifyd)
+## What Works with Each Source
 
-This project uses **spotifyd** as the Spotify Connect daemon. It runs as a user service and works properly with PipeWire audio.
+| Feature | Spotify | AirPlay | Bluetooth |
+|---------|---------|---------|-----------|
+| Audio Playback | ✅ | ✅ | ✅ |
+| Vinyl Spinning | ✅ | ✅ | ✅ |
+| Album Art | ✅ | ❌ | ❌ |
+| Scratch/Seek | ✅ | ❌ | ❌ |
+| Playback Controls | ✅ | ❌ | ❌ |
 
-### Quick Setup
+## Services
 
-Run the included setup script:
+The setup script installs these background services:
 
+| Service | Purpose | Check Status |
+|---------|---------|--------------|
+| go-librespot | Spotify Connect | `systemctl --user status go-librespot` |
+| shairport-sync | AirPlay | `sudo systemctl status shairport-sync` |
+| bluetooth | Bluetooth Audio | `sudo systemctl status bluetooth` |
+
+All services start automatically at boot.
+
+## Troubleshooting
+
+### Spotify Connect not showing up
 ```bash
-chmod +x setup_spotifyd.sh
-./setup_spotifyd.sh
+systemctl --user restart go-librespot
+systemctl --user status go-librespot
 ```
 
-### Manual Setup
+### AirPlay not showing up
+```bash
+sudo systemctl restart shairport-sync
+sudo systemctl status shairport-sync
+```
 
-1. Disable Raspotify (if previously installed):
+### No audio output
+```bash
+# List audio devices
+aplay -l
 
-   ```bash
-   sudo systemctl stop raspotify
-   sudo systemctl disable raspotify
-   ```
+# Test audio
+speaker-test -t wav -c 2
+```
 
-2. Install spotifyd:
+### Check service logs
+```bash
+# Spotify logs
+journalctl --user -u go-librespot -f
 
-   ```bash
-   sudo apt update
-   sudo apt install spotifyd
-   ```
+# AirPlay logs
+sudo journalctl -u shairport-sync -f
+```
 
-3. Create the configuration file:
+## Manual Installation
 
-   ```bash
-   mkdir -p ~/.config/spotifyd
-   nano ~/.config/spotifyd/spotifyd.conf
-   ```
-
-   Add this content:
-
-   ```toml
-   [global]
-   backend = "pulseaudio"
-   device_name = "RecordPlayer"
-   bitrate = 160
-   volume_normalisation = true
-   device_type = "speaker"
-   ```
-
-4. Enable and start spotifyd:
-
-   ```bash
-   systemctl --user enable spotifyd
-   systemctl --user start spotifyd
-   ```
-
-5. Run the record player with PipeWire audio:
-
-   ```bash
-   SDL_AUDIODRIVER=pipewire python3 main.py
-   ```
-
-Your Raspberry Pi will appear as "RecordPlayer" in Spotify.
+If you prefer to set things up manually, see the individual setup scripts:
+- `setup_v1.sh` - Full setup (recommended)
+- `setup_spotifyd.sh` - Legacy spotifyd setup (deprecated)
 
 ## Acknowledgments
 
