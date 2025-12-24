@@ -226,6 +226,8 @@ def run(windowed=False):
                 state = spotify_get_playback_state()
             
             if state:
+                # DEBUG PRINT
+                # print(f"DEBUG: Read State - Pos: {state['progress_ms']}, Playing: {state['is_playing']}")
                 current_position_ms = state["progress_ms"]
                 track_duration_ms = state["duration_ms"]
                 is_playing = state["is_playing"]
@@ -367,8 +369,17 @@ def run(windowed=False):
                 # Apply accumulated seek if we were dragging
                 if dragging and abs(accumulated_rotation) > 5:  # Minimum rotation threshold
                     seek_delta_ms = int(accumulated_rotation * SEEK_SENSITIVITY)
+                    
+                    # Flip sign if needed (test both directions)
+                    # Currently: Positive accumulated_rotation (Clockwise) -> Positive seek_delta (Forward)
+                    # If this feels "reversed", flip it here:
+                    seek_delta_ms = -seek_delta_ms 
+
                     new_position = current_position_ms + seek_delta_ms
                     new_position = max(0, min(new_position, track_duration_ms))
+                    
+                    print(f"DEBUG: Scratch Seek - Current: {current_position_ms}ms, Delta: {seek_delta_ms}ms, Target: {new_position}ms")
+                    
                     try:
                         # Try go-librespot API first (works for any user)
                         if not librespot_api.seek(new_position):
