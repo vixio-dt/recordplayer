@@ -113,12 +113,31 @@ def run(windowed=False):
     # Load vinyl record base image
     base_vinyl_img = pygame.image.load(str(records_dir / 'Vinyl.png'))
 
-    # Use system fonts with Unicode support for multi-language text
-    # Try Noto Sans (good CJK support), fallback to system default
-    try:
-        font = pygame.font.SysFont("notosans,noto sans,arial,sans-serif", 36)
-        small_font = pygame.font.SysFont("notosans,noto sans,arial,sans-serif", 24)
-    except:
+    # Use fonts with Unicode/CJK support for multi-language text
+    # Try to load Noto CJK font directly, fallback to system font
+    noto_font_paths = [
+        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+        "/usr/share/fonts/noto-cjk/NotoSansCJK-Regular.ttc",
+        "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+        "/usr/share/fonts/opentype/noto/NotoSansCJKsc-Regular.otf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    ]
+    
+    font = None
+    small_font = None
+    for font_path in noto_font_paths:
+        try:
+            if Path(font_path).exists():
+                font = pygame.font.Font(font_path, 32)
+                small_font = pygame.font.Font(font_path, 24)
+                print(f"Loaded font: {font_path}")
+                break
+        except Exception as e:
+            continue
+    
+    # Fallback to default if no CJK font found
+    if font is None:
+        print("Warning: CJK font not found, using default font")
         font = pygame.font.Font(None, 36)
         small_font = pygame.font.Font(None, 24)
 
@@ -139,7 +158,7 @@ def run(windowed=False):
     SCREEN_SIZE = 1080
     CENTER = (SCREEN_SIZE // 2, SCREEN_SIZE // 2)
     VINYL_SIZE = int(SCREEN_SIZE * 1.1)  # Slightly larger for rotation overflow
-    ALBUM_ART_SIZE = 192  # Size of album art in vinyl center (80% of 240)
+    ALBUM_ART_SIZE = 320  # Size of album art in vinyl center (larger for better visibility)
     CENTER_TAP_RADIUS = ALBUM_ART_SIZE // 2  # Tap area to show controls
     CONTROLS_AUTO_HIDE_SECONDS = 5
     SEEK_SENSITIVITY = 100  # ms per degree of rotation (360° = 36 seconds)
