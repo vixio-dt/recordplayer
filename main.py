@@ -113,8 +113,14 @@ def run(windowed=False):
     # Load vinyl record base image
     base_vinyl_img = pygame.image.load(str(records_dir / 'Vinyl.png'))
 
-    font = pygame.font.Font(None, 40)
-    small_font = pygame.font.Font(None, 28)
+    # Use system fonts with Unicode support for multi-language text
+    # Try Noto Sans (good CJK support), fallback to system default
+    try:
+        font = pygame.font.SysFont("notosans,noto sans,arial,sans-serif", 36)
+        small_font = pygame.font.SysFont("notosans,noto sans,arial,sans-serif", 24)
+    except:
+        font = pygame.font.Font(None, 36)
+        small_font = pygame.font.Font(None, 24)
 
     # -------------------------------
     # Load scratch sound effects
@@ -123,7 +129,7 @@ def run(windowed=False):
     sfx_paths = [p for p in sfx_dir.iterdir() if p.is_file() and p.suffix.lower() == '.wav']
     scratch_sounds = [pygame.mixer.Sound(str(path)) for path in sfx_paths]
     # Set scratch sound volume (0.0 to 1.0)
-    SCRATCH_VOLUME = 0.3
+    SCRATCH_VOLUME = 0.2
     for sound in scratch_sounds:
         sound.set_volume(SCRATCH_VOLUME)
 
@@ -133,7 +139,7 @@ def run(windowed=False):
     SCREEN_SIZE = 1080
     CENTER = (SCREEN_SIZE // 2, SCREEN_SIZE // 2)
     VINYL_SIZE = int(SCREEN_SIZE * 1.1)  # Slightly larger for rotation overflow
-    ALBUM_ART_SIZE = 240  # Size of album art in vinyl center (80% of original 300)
+    ALBUM_ART_SIZE = 192  # Size of album art in vinyl center (80% of 240)
     CENTER_TAP_RADIUS = ALBUM_ART_SIZE // 2  # Tap area to show controls
     CONTROLS_AUTO_HIDE_SECONDS = 5
     SEEK_SENSITIVITY = 100  # ms per degree of rotation (360° = 36 seconds)
@@ -369,15 +375,9 @@ def run(windowed=False):
                 # Apply accumulated seek if we were dragging
                 if dragging and abs(accumulated_rotation) > 5:  # Minimum rotation threshold
                     seek_delta_ms = int(accumulated_rotation * SEEK_SENSITIVITY)
-                    
-                    # Direction: Clockwise (positive rotation) = Forward (positive seek)
-                    # Remove the flip to reverse direction
-                    # seek_delta_ms = -seek_delta_ms 
 
                     new_position = current_position_ms + seek_delta_ms
                     new_position = max(0, min(new_position, track_duration_ms))
-                    
-                    print(f"DEBUG: Scratch Seek - Current: {current_position_ms}ms, Delta: {seek_delta_ms}ms, Target: {new_position}ms")
                     
                     try:
                         # Try go-librespot API first (works for any user)
@@ -475,24 +475,26 @@ def run(windowed=False):
             screen.blit(pause_btn if is_playing else play_btn, (pause_x, control_y - pause_h // 2))
             screen.blit(skip_btn, (skip_x, control_y - skip_h // 2))
             
-            # Draw song info
+            # Draw song info ABOVE the play button
             if details:
+                # Song title above the banner
                 title_surf = font.render(details["title"], True, (255, 255, 255))
-                artist_surf = small_font.render(details["artist"], True, (200, 200, 200))
-                
-                # Center the text
                 title_x = (SCREEN_SIZE - title_surf.get_width()) // 2
+                title_y = banner_y - 50  # Above the banner
+                screen.blit(title_surf, (title_x, title_y))
+                
+                # Artist name above the title
+                artist_surf = small_font.render(details["artist"], True, (200, 200, 200))
                 artist_x = (SCREEN_SIZE - artist_surf.get_width()) // 2
+                artist_y = title_y - 30  # Above the title
+                screen.blit(artist_surf, (artist_x, artist_y))
                 
-                screen.blit(title_surf, (title_x, 975))
-                screen.blit(artist_surf, (artist_x, 1015))
-                
-                # Draw progress bar
+                # Draw progress bar below the controls
                 if track_duration_ms > 0:
                     bar_width = 400
                     bar_height = 4
                     bar_x = (SCREEN_SIZE - bar_width) // 2
-                    bar_y = 1055
+                    bar_y = banner_y + banner.get_height() + 20
                     
                     # Background bar
                     pygame.draw.rect(screen, (80, 80, 80), (bar_x, bar_y, bar_width, bar_height))

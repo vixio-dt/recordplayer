@@ -55,7 +55,8 @@ sudo apt install -y \
     python3-pip \
     python3-pygame \
     pipewire-alsa \
-    avahi-utils
+    avahi-utils \
+    fonts-noto-cjk
 
 # Try to install bluez-alsa (package name varies by distro)
 sudo apt install -y bluez-alsa-utils 2>/dev/null || \

@@ -196,40 +196,14 @@ class LibrespotClient:
         return self._call_api("/player/prev") # or /previous
 
     def seek(self, position_ms):
-        # Try multiple formats since go-librespot API format is unclear
+        # go-librespot uses POST with JSON body containing "position"
         pos = int(position_ms)
-        
-        # Attempt 1: POST with position in JSON body
         try:
             url = f"{LIBRESPOT_API_URL}/player/seek"
             response = requests.post(url, json={"position": pos}, timeout=1)
-            logger.info(f"Seek attempt 1 (POST JSON): {response.status_code}")
-            if response.status_code >= 200 and response.status_code < 300:
-                return True
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Seek attempt 1 failed: {e}")
-        
-        # Attempt 2: POST with query parameter
-        try:
-            url = f"{LIBRESPOT_API_URL}/player/seek?position={pos}"
-            response = requests.post(url, timeout=1)
-            logger.info(f"Seek attempt 2 (POST query): {response.status_code}")
-            if response.status_code >= 200 and response.status_code < 300:
-                return True
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Seek attempt 2 failed: {e}")
-        
-        # Attempt 3: PUT with JSON body
-        try:
-            url = f"{LIBRESPOT_API_URL}/player/seek"
-            response = requests.put(url, json={"position": pos}, timeout=1)
-            logger.info(f"Seek attempt 3 (PUT JSON): {response.status_code}")
-            if response.status_code >= 200 and response.status_code < 300:
-                return True
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Seek attempt 3 failed: {e}")
-        
-        return False
+            return response.status_code >= 200 and response.status_code < 300
+        except requests.exceptions.RequestException:
+            return False
 
 
 # Singleton instance
