@@ -91,12 +91,13 @@ class LibrespotClient:
 
     def _handle_event(self, event):
         """Update internal state based on event data."""
+        # DEBUG: Print raw event to see what we are getting
+        logger.info(f"WS Event: {json.dumps(event)}")
+        
         event_type = event.get("event")
         
         with self._lock:
             # Handle different event types from go-librespot
-            # Note: Event names are inferred based on common librespot patterns.
-            # We'll log unknown events to help debug.
             
             if event_type == "metadata_available" or event_type == "track_changed" or event_type == "context_changed":
                 # Track info update
@@ -110,7 +111,7 @@ class LibrespotClient:
                     }
                     self.duration_ms = track.get("durationMs", 0)
             
-            elif event_type == "playing" or event_type == "playback_resumed":
+            elif event_type == "playing" or event_type == "playback_resumed" or event_type == "progress":
                 self.is_playing = True
                 self.last_update_time = time.time()
                 # If position is provided in event
@@ -131,7 +132,7 @@ class LibrespotClient:
                     self.position_ms = event["positionMs"]
                     self.last_update_time = time.time()
             
-            # Catch-all for position updates if they exist in any event
+            # Catch-all for position updates if they exist in ANY event
             if "positionMs" in event:
                 self.position_ms = event["positionMs"]
                 if self.is_playing:
