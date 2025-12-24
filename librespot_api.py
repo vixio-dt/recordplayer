@@ -92,51 +92,56 @@ class LibrespotClient:
     def _handle_event(self, event):
         """Update internal state based on event data."""
         # DEBUG: Print raw event to see what we are getting
-        logger.info(f"WS Event: {json.dumps(event)}")
+        # logger.info(f"WS Event: {json.dumps(event)}")
         
-        event_type = event.get("event")
+        # go-librespot uses "type" not "event", and data is nested in "data"
+        event_type = event.get("type")
+        data = event.get("data") or {}
         
         with self._lock:
             # Handle different event types from go-librespot
             
-            if event_type == "metadata_available" or event_type == "track_changed" or event_type == "context_changed":
-                # Track info update
-                track = event.get("track", {})
-                if track:
-                    self.track_info = {
-                        "artist": ", ".join([a.get("name", "") for a in track.get("artists", [])]) if track.get("artists") else "Unknown Artist",
-                        "album": track.get("album", {}).get("name", "Unknown Album"),
-                        "album_cover": track.get("album", {}).get("coverUrl") or track.get("coverUrl"),
-                        "title": track.get("name", "Unknown Title")
-                    }
-                    self.duration_ms = track.get("durationMs", 0)
+            if event_type == "metadata":
+                # Track metadata - contains everything we need
+                self.track_info = {
+                    "artist": ", ".join(data.get("artist_names", [])) or "Unknown Artist",
+                    "album": data.get("album_name", "Unknown Album"),
+                    "album_cover": data.get("album_cover_url"),
+                    "title": data.get("name", "Unknown Title")
+                }
+                self.duration_ms = data.get("duration", 0)
+                if "position" in data:
+                    self.position_ms = data["position"]
+                    self.last_update_time = time.time()
             
-            elif event_type == "playing" or event_type == "playback_resumed" or event_type == "progress":
+            elif event_type == "playing":
                 self.is_playing = True
                 self.last_update_time = time.time()
-                # If position is provided in event
-                if "positionMs" in event:
-                    self.position_ms = event["positionMs"]
 
-            elif event_type == "paused" or event_type == "playback_paused":
+            elif event_type == "paused":
                 self.is_playing = False
-                if "positionMs" in event:
-                    self.position_ms = event["positionMs"]
                 
-            elif event_type == "stopped":
+            elif event_type == "stopped" or event_type == "inactive":
                 self.is_playing = False
                 self.position_ms = 0
+                self.track_info = None
                 
-            elif event_type == "seeked":
-                if "positionMs" in event:
-                    self.position_ms = event["positionMs"]
+            elif event_type == "seek":
+                # Seek events contain position and duration
+                if "position" in data:
+                    self.position_ms = data["position"]
                     self.last_update_time = time.time()
+                if "duration" in data:
+                    self.duration_ms = data["duration"]
             
-            # Catch-all for position updates if they exist in ANY event
-            if "positionMs" in event:
-                self.position_ms = event["positionMs"]
-                if self.is_playing:
-                    self.last_update_time = time.time()
+            elif event_type == "will_play":
+                # Track is about to play - reset position
+                self.position_ms = 0
+                self.last_update_time = time.time()
+            
+            elif event_type == "volume":
+                # Volume change - ignore for now
+                pass
 
     def get_current_track_info(self):
         with self._lock:
