@@ -370,10 +370,9 @@ def run(windowed=False):
                 if dragging and abs(accumulated_rotation) > 5:  # Minimum rotation threshold
                     seek_delta_ms = int(accumulated_rotation * SEEK_SENSITIVITY)
                     
-                    # Flip sign if needed (test both directions)
-                    # Currently: Positive accumulated_rotation (Clockwise) -> Positive seek_delta (Forward)
-                    # If this feels "reversed", flip it here:
-                    seek_delta_ms = -seek_delta_ms 
+                    # Direction: Clockwise (positive rotation) = Forward (positive seek)
+                    # Remove the flip to reverse direction
+                    # seek_delta_ms = -seek_delta_ms 
 
                     new_position = current_position_ms + seek_delta_ms
                     new_position = max(0, min(new_position, track_duration_ms))
