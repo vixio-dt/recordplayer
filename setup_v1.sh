@@ -229,9 +229,44 @@ echo "User services will now start at boot."
 echo ""
 
 # -----------------------------------------------------------------------------
-# Step 7: Verify services
+# Step 7: Configure Visuals Autostart (Wayfire/LXDE)
 # -----------------------------------------------------------------------------
-echo "=== Step 7: Verifying services ==="
+echo "=== Step 7: Configuring Visuals Autostart ==="
+
+# Define the autostart entry content
+AUTOSTART_CONTENT="[Desktop Entry]
+Type=Application
+Name=RecordPlayer
+Exec=/bin/bash /home/$USER/Record-Player/start_recordplayer.sh
+Terminal=false
+"
+
+# 1. Wayfire (Raspberry Pi OS Bookworm and later)
+mkdir -p ~/.config/wayfire.ini.d
+if [ -f ~/.config/wayfire.ini ]; then
+    if ! grep -q "recordplayer" ~/.config/wayfire.ini; then
+        echo "" >> ~/.config/wayfire.ini
+        echo "[autostart]" >> ~/.config/wayfire.ini
+        echo "recordplayer = /home/$USER/Record-Player/start_recordplayer.sh" >> ~/.config/wayfire.ini
+    fi
+fi
+
+# 2. LXDE/Openbox (Older Raspberry Pi OS)
+mkdir -p ~/.config/autostart
+echo "$AUTOSTART_CONTENT" > ~/.config/autostart/recordplayer.desktop
+
+# 3. Cleanup old startup scripts if any
+rm -f ~/startup.py 2>/dev/null || true
+rm -f ~/setup_spotifyd.sh 2>/dev/null || true
+sed -i '/python3 main.py/d' ~/.bashrc 2>/dev/null || true
+
+echo "Visuals configured to start on boot."
+echo ""
+
+# -----------------------------------------------------------------------------
+# Step 8: Verify services
+# -----------------------------------------------------------------------------
+echo "=== Step 8: Verifying services ==="
 echo ""
 
 echo "Spotify Connect (go-librespot):"
