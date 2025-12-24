@@ -134,7 +134,7 @@ EOF
 # Enable and start service
 systemctl --user daemon-reload
 systemctl --user enable go-librespot
-systemctl --user start go-librespot
+systemctl --user restart go-librespot
 
 echo "go-librespot installed and started."
 echo ""
