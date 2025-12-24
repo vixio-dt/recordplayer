@@ -12,7 +12,7 @@ from spot import (
     stop_music, 
     skip_to_next, 
     skip_to_previous,
-    get_playback_state,
+    get_playback_state as spotify_get_playback_state,
     seek_position
 )
 import librespot_api
@@ -219,7 +219,12 @@ def run(windowed=False):
     def update_playback_state():
         nonlocal current_position_ms, track_duration_ms, is_playing, last_playback_update
         try:
-            state = get_playback_state()
+            # Try go-librespot API first
+            state = librespot_api.get_playback_state()
+            if not state:
+                # Fallback to Spotify API
+                state = spotify_get_playback_state()
+            
             if state:
                 current_position_ms = state["progress_ms"]
                 track_duration_ms = state["duration_ms"]
