@@ -169,12 +169,6 @@ class LibrespotClient:
         try:
             url = f"{LIBRESPOT_API_URL}{endpoint}"
             if method == "POST":
-                # go-librespot uses PUT or POST for actions?
-                # Usually POST for commands.
-                # Previous attempt used PUT, let's try POST or check docs/logs.
-                # Common librespot-api uses POST.
-                # But we can try both or stick to one.
-                # Let's try POST.
                 response = requests.post(url, json=data, timeout=1)
             elif method == "PUT":
                 response = requests.put(url, json=data, timeout=1)
@@ -213,16 +207,31 @@ def get_playback_state():
 def start_music():
     return client.play()
 
+def play():
+    return client.play()
+
 def stop_music():
+    return client.pause()
+
+def pause():
     return client.pause()
 
 def skip_to_next():
     return client.skip_next()
 
+def skip_next():
+    return client.skip_next()
+
 def skip_to_previous():
     return client.skip_previous()
 
+def skip_previous():
+    return client.skip_previous()
+
 def seek_position(position_ms):
+    return client.seek(position_ms)
+
+def seek(position_ms):
     return client.seek(position_ms)
 
 def is_active():
